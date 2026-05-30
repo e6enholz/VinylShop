@@ -1,0 +1,166 @@
+﻿@model VinylShop.Models.User
+@{
+    ViewData["Title"] = "Личный кабинет";
+    var deliveries = ViewBag.Deliveries as IEnumerable<VinylShop.Models.Delivery>;
+    decimal totalSpent = ViewBag.TotalSpent ?? 0;
+    var orderTotals = ViewBag.OrderTotals as Dictionary<int, decimal> ?? new Dictionary<int, decimal>();
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+                <div class="card-header bg-dark text-warning fw-bold text-uppercase py-3">👤 Мой Профиль</div>
+                <div class="card-body">
+                    <h4 class="fw-bold text-dark mb-1">@Model.login</h4>
+                    <p class="text-muted small mb-3">📧 @Model.email</p>
+                    <hr />
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-2">
+                            <span class="text-secondary">Всего потрачено:</span>
+                            <span class="fw-bold text-success">@totalSpent.ToString("N0") ₽</span>
+                        </div>
+
+                        @{
+                            var levels = new[] { 0, 10000, 30000, 70000, 150000 };
+                            int nextLevel = levels.FirstOrDefault(l => l > totalSpent, 150000);
+                        }
+
+                        <div class="text-center p-2 bg-light rounded border border-light">
+                            @if (totalSpent < 150000)
+                            {
+                                <small class="text-secondary d-block">
+                                    До уровня
+                                    <strong>@(nextLevel == 10000 ? "Бронзовый" : nextLevel == 30000 ? "Серебряный" : nextLevel == 70000 ? "Золотой" : "Платиновый")</strong>:
+                                </small>
+                                <span class="fw-bold text-dark fs-5">@((nextLevel - totalSpent).ToString("N0")) ₽</span>
+                            }
+                            else
+                            {
+                                <small class="text-warning fw-bold d-block py-1">👑 Достигнут максимальный уровень!</small>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-secondary">Ваш статус:</span>
+                        <span class="badge bg-dark text-warning fw-bold">@Model.Status?.name</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-secondary">Текущая скидка:</span>
+                        <span class="badge bg-success fw-bold">@Model.Status?.discount_percentage%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            @if (Context.Session.GetString("UserRole") == "Admin")
+            {
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-warning text-dark fw-bold text-uppercase py-3">🛠️ Управление справочниками</div>
+                    <div class="card-body">
+                        <div class="row g-4">
+                            <div class="col-md-6 border-end">
+                                <h6 class="fw-bold text-secondary mb-3">➕ Добавить музыкальный жанр</h6>
+                                <form asp-action="AddGenre" method="post">
+                                    <input name="name" class="form-control form-control-sm mb-2" placeholder="Название" required />
+                                    <textarea name="description" class="form-control form-control-sm mb-2" rows="2" placeholder="Описание..."></textarea>
+                                    <button class="btn btn-dark btn-sm w-100 fw-bold" type="submit">Сохранить</button>
+                                </form>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="fw-bold text-secondary mb-3">➕ Добавить бренд</h6>
+                                <form asp-action="AddBrand" method="post">
+                                    <input name="name" class="form-control form-control-sm mb-2" placeholder="Название" required />
+                                    <input name="country" class="form-control form-control-sm mb-2" placeholder="Страна" />
+                                    <textarea name="description" class="form-control form-control-sm mb-2" rows="2" placeholder="Описание..."></textarea>
+                                    <button class="btn btn-dark btn-sm w-100 fw-bold" type="submit">Сохранить</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-dark text-white fw-bold text-uppercase py-3">📦 История моих заказов</div>
+                    <div class="card-body p-0">
+                        @if (deliveries == null || !deliveries.Any())
+                        {
+                            <div class="p-5 text-center text-muted">Вы еще не оформили ни одного заказа.</div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 bg-white">
+                                    <thead class="table-light text-uppercase fs-7 font-monospace">
+                                        <tr>
+                                            <th scope="col" class="ps-3" style="width: 10%;">ID</th>
+                                            <th scope="col" style="width: 55%;">Информация о доставке и составе</th>
+                                            <th scope="col" style="width: 20%;">Стоимость</th>
+                                            <th scope="col" class="pe-3" style="width: 15%;">Статус</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var order in deliveries)
+                                        {
+                                            <tr>
+                                                <td class="fw-bold ps-3 text-secondary">#@order.id_delivery<br /><small class="text-muted fw-normal" style="font-size: 0.7rem;">@order.orderDate.ToString("dd.MM.yyyy")</small></td>
+                                                <td>
+                                                    <div class="mb-1"><strong class="text-dark">📍 Адрес:</strong> @order.delivery_address</div>
+                                                    <div class="small bg-light p-2 rounded border border-light">
+                                                        @{
+                                                            var items = (ViewBag.OrderItems as List<VinylShop.Models.OrderVinyl>)?
+                                                            .Where(x => x.deliveryId == order.id_delivery).ToList();
+                                                            if (items != null && items.Any())
+                                                            {
+                                                                <ul class="list-unstyled mb-0 ps-1">
+                                                                    @foreach (var item in items)
+                                                                    {
+                                                                        <li>💿 <span class="fw-bold">«@item.Vinyl?.album»</span> — @item.Vinyl?.artist</li>
+                                                                    }
+                                                                </ul>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted italic">Только сопутствующее оборудование</span>
+                                                            }
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td class="fw-bold text-dark">
+                                                    @(orderTotals.ContainsKey(order.id_delivery) ? orderTotals[order.id_delivery].ToString("N2") : "0.00") ₽
+                                                </td>
+                                                <td class="pe-3">
+                                                    @if (order.status_text == "В обработке")
+                                                    {
+                                                        <span class="badge bg-warning text-dark px-2 py-1 w-100">⏳ Ждет</span>
+                                                    }
+                                                    else if (order.status_text == "В пути")
+                                                    {
+                                                        <span class="badge bg-primary px-2 py-1 w-100">🚚 В пути</span>
+                                                    }
+                                                    else if (order.status_text == "Доставлен")
+                                                    {
+                                                        <span class="badge bg-success px-2 py-1 w-100">✅ Готов</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-danger px-2 py-1 w-100">❌ Отмена</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

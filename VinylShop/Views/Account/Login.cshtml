@@ -1,0 +1,30 @@
+﻿@{
+    ViewData["Title"] = "Вход";
+}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <div class="card shadow border-0">
+            <div class="card-header bg-dark text-warning text-center fw-bold text-uppercase">🔐 Вход в систему</div>
+            <div class="card-body p-4">
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger p-2 small">@ViewBag.Error</div>
+                }
+                <form asp-action="Login" method="post">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Логин</label>
+                        <input name="login" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Пароль</label>
+                        <input name="password" type="password" class="form-control" required />
+                    </div>
+                    <button type="submit" class="btn btn-dark text-warning w-100 fw-bold">ВОЙТИ</button>
+                </form>
+                <div class="text-center mt-3">
+                    <a asp-action="Register" class="small text-muted">Нет аккаунта? Зарегистрироваться</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,99 @@
+﻿@model IEnumerable<VinylShop.Models.Player>
+
+@{
+    ViewData["Title"] = "Каталог проигрывателей";
+    var userRole = Context.Session.GetString("UserRole");
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-uppercase fw-bold text-secondary">🔊 Виниловые проигрыватели</h2>
+
+        @if (userRole == "Admin")
+        {
+            <a class="btn btn-dark btn-sm" asp-action="Create">+ Добавить аппарат</a>
+        }
+    </div>
+
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover align-middle bg-white mb-0">
+            <thead class="table-dark text-uppercase fs-7">
+                <tr>
+                    <th scope="col" class="ps-4">Бренд</th>
+                    <th scope="col">Модель</th>
+                    <th scope="col">Тип привода</th>
+                    <th scope="col">Цена</th>
+                    <th scope="col" class="text-end pe-4">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td class="fw-bold ps-4">@item.Brand?.name <small class="text-muted">(@item.Brand?.country)</small></td>
+                        <td>@item.model</td>
+                        <td>
+                            <span class="badge bg-warning text-dark">@item.DriveType?.name</span>
+                        </td>
+                        <td class="fw-bold text-success">@item.price.ToString("N2") ₽</td>
+                        <td class="text-end pe-4">
+                            <div class="d-flex justify-content-end align-items-center gap-2">
+                                @if (userRole == "User")
+                                {
+                                    <!-- Кнопка купить для Юзера -->
+                                    <form asp-controller="Cart" asp-action="AddPlayerToCart" method="post" class="m-0">
+                                        <input type="hidden" name="playerId" value="@item.id_player" />
+                                        <button type="submit" class="btn btn-success btn-sm fw-bold">🛒 В корзину</button>
+                                    </form>
+                                }
+                                else if (userRole == "Admin")
+                                {
+                                    <!-- Кнопка удаления только для Админа -->
+                                    <form asp-action="Delete" asp-route-id="@item.id_player" method="post" onsubmit="return confirm('Удалить этот проигрыватель?');" class="m-0">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">Удалить</button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    document.querySelectorAll('form[action*="AddToCart"], form[action*="AddPlayerToCart"]').forEach(form => {
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault(); // Останавливаем жесткую перезагрузку
+
+            var formData = new FormData(this);
+            var actionUrl = this.getAttribute('action');
+
+            try {
+                // Отправляем данные на сервер в фоновом режиме
+                let response = await fetch(actionUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    // Красивое всплывающее окно в углу экрана
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Товар добавлен в корзину! 📦',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true
+                    });
+                }
+            } catch (error) {
+                console.error("Ошибка добавления:", error);
+            }
+        });
+    });
+</script>

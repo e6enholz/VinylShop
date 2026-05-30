@@ -1,0 +1,95 @@
+﻿@model VinylShop.Models.Delivery
+
+@{
+    ViewData["Title"] = "Детали заказа #" + Model.id_delivery;
+    var items = (List<VinylShop.Models.OrderVinyl>)ViewBag.Items;
+}
+
+<div class="container mt-4">
+    <div class="mb-4">
+        <a asp-action="Index" class="btn btn-outline-secondary mb-3">← Назад к списку</a>
+        <h2 class="fw-bold">Заказ №@Model.id_delivery</h2>
+        <p class="text-muted">Дата оформления: @Model.orderDate.ToString("dd.MM.yyyy HH:mm")</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-dark text-white">Информация о клиенте</div>
+                <div class="card-body">
+                    <p><strong>Логин:</strong> @Model.User?.login</p>
+                    <p><strong>Email:</strong> @Model.User?.email</p>
+                    <p>
+                        <strong>Статус клиента:</strong>
+                        <span class="badge @(Model.User?.Status?.name == "VIP" ? "bg-danger" : "bg-secondary")">
+                            @Model.User?.Status?.name
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-dark text-white">Детали доставки</div>
+                <div class="card-body">
+                    <p><strong>Адрес:</strong> @Model.delivery_address</p>
+                    <p><strong>Текущий статус:</strong> <span class="text-primary fw-bold">@Model.status_text</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mb-3 mt-4">Состав заказа</h4>
+
+    @* Блок для пластинок *@
+    @{
+        var vinylItems = (List<VinylShop.Models.OrderVinyl>)ViewBag.VinylItems;
+        var playerItems = (List<VinylShop.Models.OrderPlayer>)ViewBag.PlayerItems;
+    }
+
+    @if (vinylItems != null && vinylItems.Any())
+    {
+        <h5 class="text-secondary">Виниловые пластинки</h5>
+        <table class="table table-bordered mb-4">
+            <thead class="table-light">
+                <tr><th>Альбом</th><th>Исполнитель</th><th>Цена</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var item in vinylItems)
+                {
+                    <tr>
+                        <td>@item.Vinyl?.album</td>
+                        <td>@item.Vinyl?.artist</td>
+                        <td>@item.Vinyl?.price руб.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @* Блок для проигрывателей *@
+    @if (playerItems != null && playerItems.Any())
+    {
+        <h5 class="text-secondary">Проигрыватели</h5>
+        <table class="table table-bordered mb-4">
+            <thead class="table-light">
+                <tr><th>Модель</th><th>Цена</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var item in playerItems)
+                {
+                    <tr>
+                        <td>@item.Player?.model</td>
+                        <td>@item.Player?.price руб.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if ((vinylItems == null || !vinylItems.Any()) && (playerItems == null || !playerItems.Any()))
+    {
+        <p class="text-muted">В заказе нет товаров.</p>
+    }
+</div>

@@ -1,0 +1,53 @@
+﻿@model VinylShop.Models.Player
+
+@{
+    ViewData["Title"] = "Добавить проигрыватель";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-header bg-dark text-warning py-3">
+                    <h4 class="m-0 text-uppercase fw-bold">🔊 Новая вертушка в каталог</h4>
+                </div>
+                <div class="card-body p-4 bg-white">
+                    <form asp-action="Create">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="model" class="form-label fw-bold">Модель проигрывателя</label>
+                            <input asp-for="model" class="form-control" placeholder="Например: SL-1200MK7" required />
+                            <span asp-validation-for="model" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="price" class="form-label fw-bold">Цена (руб.)</label>
+                            <input asp-for="price" type="number" step="0.01" class="form-control" placeholder="85000" required />
+                            <span asp-validation-for="price" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="brandId" class="form-label fw-bold">Производитель (Бренд)</label>
+                            <select asp-for="brandId" class="form-select" asp-items="ViewBag.id_brand" required>
+                                <option value="">-- Выберите бренд --</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="driveTypeId" class="form-label fw-bold">Тип привода</label>
+                            <select asp-for="driveTypeId" class="form-select" asp-items="ViewBag.id_drive_type" required>
+                                <option value="">-- Выберите привод --</option>
+                            </select>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a asp-action="Index" class="btn btn-outline-secondary me-md-2">Назад к списку</a>
+                            <button type="submit" class="btn btn-dark text-warning px-4 fw-bold">Сохранить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

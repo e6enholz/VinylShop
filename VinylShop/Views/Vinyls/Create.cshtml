@@ -1,0 +1,59 @@
+﻿@model VinylShop.Models.Vinyl
+
+@{
+    ViewData["Title"] = "Добавить пластинку";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-header bg-dark text-warning py-3">
+                    <h4 class="m-0 text-uppercase fw-bold">➕ Новое поступление винила</h4>
+                </div>
+                <div class="card-body p-4 bg-white">
+                    <form asp-action="Create">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="album" class="form-label fw-bold">Название альбома</label>
+                            <input asp-for="album" class="form-control" placeholder="Например: The Dark Side of the Moon" required />
+                            <span asp-validation-for="album" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="artist" class="form-label fw-bold">Исполнитель / Группа</label>
+                            <input asp-for="artist" class="form-control" placeholder="Например: Pink Floyd" required />
+                            <span asp-validation-for="artist" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="price" class="form-label fw-bold">Цена (руб.)</label>
+                            <input asp-for="price" type="number" step="0.01" class="form-control" placeholder="3500" required />
+                            <span asp-validation-for="price" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="genreId" class="form-label fw-bold">Музыкальный жанр</label>
+                            <select asp-for="genreId" class="form-select" asp-items="ViewBag.id_genre" required>
+                                <option value="">-- Выберите жанр --</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="conditionId" class="form-label fw-bold">Состояние пластинки</label>
+                            <select asp-for="conditionId" class="form-select" asp-items="ViewBag.id_condition" required>
+                                <option value="">-- Выберите состояние --</option>
+                            </select>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a asp-action="Index" class="btn btn-outline-secondary me-md-2">Назад к списку</a>
+                            <button type="submit" class="btn btn-dark text-warning px-4 fw-bold">Сохранить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

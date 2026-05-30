@@ -1,0 +1,146 @@
+﻿@model List<VinylShop.Models.Vinyl>
+
+@{
+    ViewData["Title"] = "Ваша корзина";
+    var playerItems = ViewBag.CartPlayers as List<VinylShop.Models.Player> ?? new List<VinylShop.Models.Player>();
+    decimal total = ViewBag.CartTotal ?? 0;
+    int discount = ViewBag.Discount ?? 0;
+}
+
+<div class="container mt-4">
+    <h2 class="text-uppercase fw-bold text-secondary mb-4">🛒 Оформление заказа</h2>
+
+    @if (!Model.Any() && !playerItems.Any())
+    {
+        <div class="alert alert-info shadow-sm p-4 text-center">
+            <h4 class="alert-heading">Корзина пуста 😔</h4>
+            <p class="mb-0">Перейдите в каталог, чтобы добавить товары.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card shadow-sm border-0 bg-white p-3 mb-4">
+                    <h5 class="fw-bold border-bottom pb-2 text-dark">Выбранные товары</h5>
+
+                    @if (Model.Any())
+                    {
+                        <div class="mb-3">
+                            <h6 class="text-muted text-uppercase small font-monospace">Document 💿 Виниловые пластинки:</h6>
+                            <ul class="list-group list-group-flush">
+                                @foreach (var vinyl in Model)
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                        <div><span class="fw-bold">«@vinyl.album»</span> — @vinyl.artist</div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-light text-dark border fw-bold">@vinyl.price.ToString("N2") ₽</span>
+                                            <form asp-controller="Cart" asp-action="RemoveVinyl" method="post" class="m-0">
+                                                <input type="hidden" name="vinylId" value="@vinyl.id_vinyl" />
+                                                <button type="submit" class="btn btn-sm text-danger border-0 bg-transparent p-1">❌</button>
+                                            </form>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    @if (playerItems.Any())
+                    {
+                        <div>
+                            <h6 class="text-muted text-uppercase small font-monospace">🔊 Аппаратура:</h6>
+                            <ul class="list-group list-group-flush">
+                                @foreach (var player in playerItems)
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                        <div><span class="fw-bold text-primary">@player.Brand?.name</span> — @player.model</div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-light text-dark border fw-bold">@player.price.ToString("N2") ₽</span>
+                                            <form asp-controller="Cart" asp-action="RemovePlayer" method="post" class="m-0">
+                                                <input type="hidden" name="playerId" value="@player.id_player" />
+                                                <button type="submit" class="btn btn-sm text-danger border-0 bg-transparent p-1">❌</button>
+                                            </form>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <div class="text-end mt-3">
+                        <a asp-controller="Cart" asp-action="Clear" class="btn btn-link btn-sm text-danger text-decoration-none">🗑 Очистить всю корзину</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card shadow-sm border-0 bg-dark text-white p-4">
+                    <h5 class="fw-bold mb-3 border-bottom pb-2 border-secondary">Итого к оплате</h5>
+
+                    @if (discount > 0)
+                    {
+                        <div class="d-flex justify-content-between small text-warning mb-2">
+                            <span>Ваша скидка клиента:</span>
+                            <span class="fw-bold">-@discount%</span>
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="fs-5">Сумма:</span>
+                        <span class="fs-3 fw-bold text-success">@total.ToString("N2") ₽</span>
+                    </div>
+
+                    <form asp-controller="Profile" asp-action="CreateOrder" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label text-light small text-uppercase fw-bold">📍 Адрес доставки (кликните на карту или введите вручную):</label>
+                            <input type="text" id="deliveryAddress" name="address" class="form-control mb-2" placeholder="г. Санкт-Петербург, ул. Большая Морская, д. 18" required />
+                        </div>
+
+                        <div id="map" class="rounded border border-secondary mb-3" style="width: 100%; height: 250px;"></div>
+
+                        <button type="submit" class="btn btn-success w-100 fw-bold py-2.5 text-uppercase shadow">📦 Подтвердить заказ</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+<script type="text/javascript">
+    ymaps.ready(init);
+    function init() {
+        // Создаем карту с центром в Питере (можно поменять на свой город)
+        var myMap = new ymaps.Map("map", {
+            center: [59.9342802, 30.3350986],
+            zoom: 11,
+            controls: ['zoomControl']
+        });
+
+        var myPlacemark;
+
+        // Ловим клик по карте
+        myMap.events.add('click', function (e) {
+            var coords = e.get('coords');
+
+            // Передвигаем маркер
+            if (myPlacemark) {
+                myPlacemark.geometry.setCoordinates(coords);
+            } else {
+                myPlacemark = new ymaps.Placemark(coords, {}, { preset: 'islands#violetDotIconWithCaption' });
+                myMap.geoObjects.add(myPlacemark);
+            }
+
+            // Запрашиваем адрес по координатам (Обратное геокодирование)
+            ymaps.geocode(coords).then(function (res) {
+                var firstGeoObject = res.geoObjects.get(0);
+                var addressText = firstGeoObject.getAddressLine();
+
+                // Засовываем полученный адрес прямиком в наш текстовый инпут!
+                document.getElementById('deliveryAddress').value = addressText;
+            });
+        });
+    }
+</script>

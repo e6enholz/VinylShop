@@ -1,0 +1,114 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - VinylShop</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/VinylShop.styles.css" asp-append-version="true" />
+    <style>
+        /* Небольшой тюнинг для красоты */
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            transition: color 0.2s ease-in-out;
+        }
+
+        .footer {
+            background-color: #212529;
+            color: #868e96 !important;
+            padding: 1.5rem 0;
+            margin-top: 5rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom shadow-sm mb-4">
+            <div class="container">
+                <a class="navbar-brand text-warning" asp-area="" asp-controller="Home" asp-action="Index">📌 VinylShop</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1 border-start border-secondary ps-3 ms-2">
+                        <li class="nav-item">
+                            <a class="nav-link text-light me-2" asp-controller="Home" asp-action="Index">Главная</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light me-2" asp-controller="Vinyls" asp-action="Index">💿 Пластинки</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light me-2" asp-controller="Players" asp-action="Index">🔊 Проигрыватели</a>
+                        </li>
+
+                        @if (Context.Session.GetString("UserRole") == "Admin")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-light me-2" asp-controller="Orders" asp-action="Index">📦 Заказы</a>
+                            </li>
+                        }
+
+                        @if (Context.Session.GetString("UserRole") == "User")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold position-relative" asp-controller="Cart" asp-action="Index">
+                                    🛒 Корзина
+                                    @if (!string.IsNullOrEmpty(Context.Session.GetString("Cart")) || !string.IsNullOrEmpty(Context.Session.GetString("PlayerCart")))
+                                    {
+                                        <span class="position-absolute top-1 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
+                                    }
+                                </a>
+                            </li>
+                        }
+                    </ul>
+
+                    <div class="d-flex align-items-center">
+                        @if (Context.Session.GetString("UserRole") != null)
+                        {
+                            <span class="text-light me-3 small">
+                                Привет, <a asp-controller="Profile" asp-action="Index" class="text-warning fw-bold text-decoration-none">@Context.Session.GetString("UserLogin")</a>
+                                (<span class="badge bg-secondary">@Context.Session.GetString("UserRole")</span>)
+                            </span>
+                            <a class="btn btn-outline-light btn-sm" asp-controller="Account" asp-action="Logout">Выйти</a>
+                        }
+                        else
+                        {
+                            <a class="btn btn-warning btn-sm fw-bold me-2" asp-controller="Account" asp-action="Login">Войти</a>
+                            <a class="btn btn-outline-light btn-sm" asp-controller="Account" asp-action="Register">Регистрация</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <main role="main" class="pb-5">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="footer border-top text-muted">
+        <div class="container text-center">
+            &copy; 2026 - <span class="text-warning fw-bold">VinylShop Admin</span> - Лабораторная работа
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

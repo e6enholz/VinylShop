@@ -1,0 +1,100 @@
+﻿@model IEnumerable<VinylShop.Models.Vinyl>
+
+@{
+    ViewData["Title"] = "Каталог пластинок";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-uppercase fw-bold text-secondary">💿 Каталог виниловых пластинок</h2>
+        @if (Context.Session.GetString("UserRole") == "Admin")
+        {
+            <a class="btn btn-dark btn-sm" asp-action="Create">+ Добавить новинку</a>
+        }
+    </div>
+
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover align-middle bg-white mb-0" style="table-layout: fixed;">
+            <thead class="table-dark text-uppercase fs-7">
+                <tr>
+                    <th scope="col" class="ps-4" style="width: 25%;">Альбом</th>
+                    <th scope="col" style="width: 20%;">Исполнитель</th>
+                    <th scope="col" style="width: 10%;">Жанр</th>
+                    <th scope="col" style="width: 15%;">Состояние</th>
+                    <th scope="col" style="width: 10%;">Цена</th>
+                    <th scope="col" class="text-end pe-4" style="width: 20%;">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td class="fw-bold ps-4">@item.album</td>
+                        <td class="text-muted">@item.artist</td>
+                        <td>
+                            <span class="badge bg-secondary">@item.Genre?.name</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info text-dark" title="@item.Condition?.description">
+                                @item.Condition?.name
+                            </span>
+                        </td>
+                        <td class="fw-bold text-success">@item.price.ToString("C2")</td>
+                        <td>
+                            @if (Context.Session.GetString("UserRole") == "User")
+                            {
+                                <form asp-controller="Cart" asp-action="AddToCart" method="post">
+                                    <!-- Тут имя должно быть строго vinylId -->
+                                    <input type="hidden" name="vinylId" value="@item.id_vinyl" />
+                                    <button type="submit" class="btn btn-success btn-sm fw-bold">🛒 В корзину</button>
+                                </form>
+                            }
+                            @if (Context.Session.GetString("UserRole") == "Admin")
+                            {
+                                    <form asp-action="Delete" asp-route-id="@item.id_vinyl" method="post" onsubmit="return confirm('Реально удалить эту пластинку?');">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">Удалить</button>
+                                    </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    document.querySelectorAll('form[action*="AddToCart"], form[action*="AddPlayerToCart"]').forEach(form => {
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault(); // Останавливаем жесткую перезагрузку
+
+            var formData = new FormData(this);
+            var actionUrl = this.getAttribute('action');
+
+            try {
+                // Отправляем данные на сервер в фоновом режиме
+                let response = await fetch(actionUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    // Красивое всплывающее окно в углу экрана
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Товар добавлен в корзину! 📦',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true
+                    });
+                }
+            } catch (error) {
+                console.error("Ошибка добавления:", error);
+            }
+        });
+    });
+</script>
