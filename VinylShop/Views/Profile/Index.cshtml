@@ -113,23 +113,40 @@
                                                     <div class="mb-1"><strong class="text-dark">📍 Адрес:</strong> @order.delivery_address</div>
                                                     <div class="small bg-light p-2 rounded border border-light">
                                                         @{
-                                                            var items = (ViewBag.OrderItems as List<VinylShop.Models.OrderVinyl>)?
+                                                            // Получаем товары для текущего заказа
+                                                            var vinylItems = (ViewBag.OrderItems as List<VinylShop.Models.OrderVinyl>)?
                                                             .Where(x => x.deliveryId == order.id_delivery).ToList();
-                                                            if (items != null && items.Any())
-                                                            {
-                                                                <ul class="list-unstyled mb-0 ps-1">
-                                                                    @foreach (var item in items)
+
+                                                            var playerItems = (ViewBag.OrderPlayers as List<VinylShop.Models.OrderPlayer>)?
+                                                            .Where(x => x.deliveryId == order.id_delivery).ToList();
+
+                                                            bool hasItems = (vinylItems != null && vinylItems.Any()) || (playerItems != null && playerItems.Any());
+                                                        }
+
+                                                        @if (hasItems)
+                                                        {
+                                                            <ul class="list-unstyled mb-0 ps-1">
+                                                                @if (vinylItems != null)
+                                                                {
+                                                                    @foreach (var item in vinylItems)
                                                                     {
                                                                         <li>💿 <span class="fw-bold">«@item.Vinyl?.album»</span> — @item.Vinyl?.artist</li>
                                                                     }
-                                                                </ul>
-                                                            }
-                                                            else
-                                                            {
-                                                                <span class="text-muted italic">Только сопутствующее оборудование</span>
-                                                            }
+                                                                }
+                                                                @if (playerItems != null)
+                                                                {
+                                                                    @foreach (var item in playerItems)
+                                                                    {
+                                                                        <li>🎧 <span class="fw-bold">Плеер: @item.Player?.model</span></li>
+                                                                    }
+                                                                }
+                                                            </ul>
                                                         }
-                                                    </div>
+                                                        else
+                                                        {
+                                                            <span class="text-muted italic">В заказе нет товаров</span>
+                                                        }
+                                                    </div>,
                                                 </td>
                                                 <td class="fw-bold text-dark">
                                                     @(orderTotals.ContainsKey(order.id_delivery) ? orderTotals[order.id_delivery].ToString("N2") : "0.00") ₽

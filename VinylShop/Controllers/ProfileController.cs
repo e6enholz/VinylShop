@@ -15,6 +15,7 @@ namespace VinylShop.Controllers
         }
 
         // Главная страница профиля (Личный кабинет)
+        // Главная страница профиля (Личный кабинет)
         public async Task<IActionResult> Index()
         {
             var userId = HttpContext.Session.GetInt32("UserId");
@@ -23,9 +24,16 @@ namespace VinylShop.Controllers
             var user = await _context.Users.Include(u => u.Status).FirstOrDefaultAsync(u => u.id_user == userId);
             var userDeliveries = await _context.Deliveries.Where(d => d.userId == userId).ToListAsync();
 
-            // Подтягиваем все связи товаров
-            var orderItems = await _context.OrderVinyls.Include(ov => ov.Vinyl).Where(ov => ov.Delivery!.userId == userId).ToListAsync();
-            ViewBag.OrderItems = orderItems;
+            // 1. Подтягиваем ВСЕ связи товаров для заказов этого пользователя
+            var orderVinyls = await _context.OrderVinyls
+                .Include(ov => ov.Vinyl)
+                .Where(ov => ov.Delivery!.userId == userId)
+                .ToListAsync();
+
+            var orderPlayers = await _context.OrderPlayers
+                .Include(op => op.Player)
+                .Where(op => op.Delivery!.userId == userId)
+                .ToListAsync();
 
             // --- НАКОПИТЕЛЬНАЯ СИСТЕМА СКИДОК ---
             decimal totalSpent = 0;
@@ -33,28 +41,22 @@ namespace VinylShop.Controllers
 
             foreach (var delivery in userDeliveries)
             {
-                // Считаем винил в этом заказе
-                var vinylsInOrder = orderItems.Where(oi => oi.deliveryId == delivery.id_delivery && oi.Vinyl != null).Select(oi => oi.Vinyl!).ToList();
-                decimal deliveryTotal = vinylsInOrder.Sum(v => v.price);
+                // Считаем сумму винила
+                decimal vinylTotal = orderVinyls
+                    .Where(oi => oi.deliveryId == delivery.id_delivery)
+                    .Sum(oi => oi.Vinyl?.price ?? 0);
 
-                // Парсим проигрыватели, если они вшиты в строку адреса: "[Оборудование: «Model X»]"
-                if (delivery.delivery_address != null && delivery.delivery_address.Contains("[Оборудование:"))
-                {
-                    // Извлекаем имена моделей и ищем их цену в базе данных
-                    var playersTable = await _context.Players.ToListAsync();
-                    foreach (var player in playersTable)
-                    {
-                        if (delivery.delivery_address.Contains($"«{player.model}»") || delivery.delivery_address.Contains($"«{player.model}»"))
-                        {
-                            deliveryTotal += player.price;
-                        }
-                    }
-                }
+                // Считаем сумму проигрывателей (БЕЗ ПАРСИНГА СТРОК!)
+                decimal playerTotal = orderPlayers
+                    .Where(op => op.deliveryId == delivery.id_delivery)
+                    .Sum(op => op.Player?.price ?? 0);
 
-                // Применяем скидку, которая БЫЛА у пользователя на момент заказа (или текущую, для простоты диплома)
+                decimal deliveryTotal = vinylTotal + playerTotal;
+
+                // Применяем скидку
                 if (user?.Status != null && user.Status.discount_percentage > 0)
                 {
-                    deliveryTotal = deliveryTotal - (deliveryTotal * user.Status.discount_percentage / 100);
+                    deliveryTotal -= (deliveryTotal * user.Status.discount_percentage / 100);
                 }
 
                 orderTotals[delivery.id_delivery] = deliveryTotal;
@@ -66,26 +68,29 @@ namespace VinylShop.Controllers
                 }
             }
 
-            ViewBag.OrderTotals = orderTotals; // Передаем стоимости заказов
-            ViewBag.TotalSpent = totalSpent;   // Передаем общую сумму трат
+            ViewBag.OrderTotals = orderTotals;
+            ViewBag.TotalSpent = totalSpent;
+            ViewBag.OrderVinyls = orderVinyls; // Передаем список пластинок
+            ViewBag.OrderPlayers = orderPlayers; // Передаем список плееров
 
-            // Авто-апдейт статуса клиента на основе трат (Простая бизнес-логика для диплома)
+            // ... далее логика апдейта статуса и корзины (оставь как было) ...
+
+            // (Код апдейта статуса остается прежним...)
             if (user != null)
             {
                 var status = await _context.Statuses
-                 .OrderByDescending(s => s.min_spend) // Сначала самые дорогие пороги
-                 .FirstOrDefaultAsync(s => totalSpent >= s.min_spend);
+                   .OrderByDescending(s => s.min_spend)
+                   .FirstOrDefaultAsync(s => totalSpent >= s.min_spend);
 
                 if (status != null && user?.statusId != status.id_status)
                 {
                     user.statusId = status.id_status;
                     await _context.SaveChangesAsync();
-                    // Перезагружаем пользователя
                     user = await _context.Users.Include(u => u.Status).FirstOrDefaultAsync(u => u.id_user == userId);
                 }
             }
 
-            // Стандартная логика корзины (похожая на прошлую)
+            // (Код корзины...)
             var cartIdsString = HttpContext.Session.GetString("Cart") ?? "";
             var playerCartIdsString = HttpContext.Session.GetString("PlayerCart") ?? "";
             var cartVinyls = new List<Vinyl>();
@@ -123,65 +128,47 @@ namespace VinylShop.Controllers
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null) return RedirectToAction("Login", "Account");
 
-            var cartIdsString = HttpContext.Session.GetString("Cart") ?? "";
-            var playerCartIdsString = HttpContext.Session.GetString("PlayerCart") ?? "";
-
-            if (string.IsNullOrEmpty(cartIdsString) && string.IsNullOrEmpty(playerCartIdsString))
-            {
-                return RedirectToAction("Index", "Cart");
-            }
-            if (string.IsNullOrEmpty(address))
-            {
-                return RedirectToAction("Index", "Cart");
-            }
-
-            // 1. Создаем объект доставки
+            // 1. Создаем объект заказа
             var newDelivery = new Delivery
             {
                 delivery_address = address,
-                status_text = "В обработке",
-                orderDate = DateTime.UtcNow,
-                userId = userId.Value
+                userId = userId.Value,
+                status_text = "Новый",
+                orderDate = DateTime.UtcNow
             };
 
             _context.Deliveries.Add(newDelivery);
-            await _context.SaveChangesAsync(); // Сначала сохраняем, чтобы получить ID заказа
+            await _context.SaveChangesAsync(); // Сначала сохраняем Delivery, чтобы получить id_delivery
 
-            // 2. Сохраняем пластинки (как было)
-            if (!string.IsNullOrEmpty(cartIdsString))
+            // 2. Сохраняем винил (если есть в сессии)
+            var cart = HttpContext.Session.GetString("Cart");
+            if (!string.IsNullOrEmpty(cart))
             {
-                var ids = cartIdsString.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).Select(int.Parse).ToList();
-                foreach (var vinylId in ids)
+                var ids = cart.Split(',').Select(int.Parse);
+                foreach (var id in ids)
                 {
-                    _context.OrderVinyls.Add(new OrderVinyl
-                    {
-                        deliveryId = newDelivery.id_delivery,
-                        vinylId = vinylId
-                    });
+                    _context.OrderVinyls.Add(new OrderVinyl { deliveryId = newDelivery.id_delivery, vinylId = id });
                 }
             }
 
-            // 3. Сохраняем плееры (НОВЫЙ БЛОК)
-            if (!string.IsNullOrEmpty(playerCartIdsString))
+            // 3. Сохраняем Плееры (НОВАЯ ЛОГИКА)
+            var playerCart = HttpContext.Session.GetString("PlayerCart");
+            if (!string.IsNullOrEmpty(playerCart))
             {
-                var pIds = playerCartIdsString.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).Select(int.Parse).ToList();
-                foreach (var pId in pIds)
+                var pIds = playerCart.Split(',').Select(int.Parse);
+                foreach (var id in pIds)
                 {
-                    _context.OrderPlayers.Add(new OrderPlayer
-                    {
-                        deliveryId = newDelivery.id_delivery,
-                        playerId = pId
-                    });
+                    _context.OrderPlayers.Add(new OrderPlayer { deliveryId = newDelivery.id_delivery, playerId = id });
                 }
             }
 
-            await _context.SaveChangesAsync(); // Сохраняем все добавления разом
+            await _context.SaveChangesAsync();
 
-            // Чистим сессию
+            // 4. Чистим сессию
             HttpContext.Session.Remove("Cart");
             HttpContext.Session.Remove("PlayerCart");
 
-            return RedirectToAction("Index", "Orders"); // Перенаправляем на список заказов
+            return RedirectToAction("Index", "Profile"); // Или куда там перекидывать после заказа
         }
 
         [HttpPost]

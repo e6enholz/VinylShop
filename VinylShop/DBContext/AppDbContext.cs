@@ -88,7 +88,7 @@ namespace VinylShop.DBContext
 
             modelBuilder.Entity<User>().HasData(
                 new User { id_user = 1, login = "admin", email = "admin@vinyl.ru", password = "admin", roleId = 1, statusId = 3 },
-                new User { id_user = 2, login = "ivan_vinyl", email = "ivan@mail.ru", password = "password123", roleId = 2, statusId = 1 }
+                new User { id_user = 2, login = "user", email = "user@mail.ru", password = "user", roleId = 2, statusId = 1 }
             );
 
             modelBuilder.Entity<Vinyl>().HasData(
@@ -101,9 +101,6 @@ namespace VinylShop.DBContext
                 new Player { id_player = 2, model = "SL-1200", price = 85000, brandId = 1, driveTypeId = 1 }
             );
 
-            modelBuilder.Entity<Delivery>().HasData(
-                new Delivery { id_delivery = 1, userId = 2, delivery_address = "г. Санкт-Петербург, ул. Большая Морская, д. 18", status_text = "В пути" }
-            );
         }
     }
 }
